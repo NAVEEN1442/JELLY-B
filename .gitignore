@@ -21,3 +21,10 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Ignore root .env
+.env
+
+# Ignore server .env (if in a subfolder like "server")
+server/.env
+
