@@ -6,7 +6,7 @@ dotenv.config();
 const PORT = process.env.PORT || 4000;
 const cookieParser = require("cookie-parser");
 const imageRouter = require("./routes/index");
-const CORS = require("cors");
+const cors = require("cors");
 
 //database connect
 database.connect();
@@ -14,18 +14,25 @@ database.connect();
 app.use(express.json());
 app.use(cookieParser());
 
-const allowedOrigins = ['http://localhost:3000','http://192.168.254.230:3000'];
 
-app.use(CORS({
+
+const allowedOrigins = [
+  'http://localhost:3000', // your local development
+  'https://jelly-b-ai-image-generation.vercel.app' // add the Vercel domain here
+];
+
+app.use(cors({
   origin: function (origin, callback) {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.) or from the allowed list
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true,
+  credentials: true, // include this if you need cookies or authorization headers
 }));
+
 
 
 app.get("/", (req, res) => {
