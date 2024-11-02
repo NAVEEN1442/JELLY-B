@@ -5,15 +5,24 @@ const dotenv = require("dotenv");
 dotenv.config();
 const PORT = process.env.PORT || 4000;
 const cookieParser = require("cookie-parser");
-const imageRouter = require("./routes/index");
+const fileUpload = require("express-fileupload");
 const cors = require("cors");
+
+
+const imageRouter = require("./routes/index");
+const userRouter = require("./routes/User");
 
 //database connect
 database.connect();
 //middlewares
 app.use(express.json());
 app.use(cookieParser());
-
+app.use(
+	fileUpload({
+		useTempFiles: true,
+		tempFileDir: "/tmp/",
+	})
+);
 
 
 const allowedOrigins = [
@@ -43,7 +52,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/v1/image",imageRouter);
-
+app.use("/api/v1/auth",userRouter);
 
 app.listen(PORT, () => {
 	console.log(`App is running at ${PORT}`)

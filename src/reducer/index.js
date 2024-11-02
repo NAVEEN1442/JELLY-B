@@ -1,9 +1,11 @@
 import {combineReducers} from "@reduxjs/toolkit";
-import imageReducer from "../slices/imagesSlice"; 
 
+import authReducer from "../slices/authSlice";
+import collectionReducer from "../slices/collectionSlice";
 
 const rootReducer  = combineReducers({
-    image: imageReducer,
+    auth: authReducer,
+    collection: collectionReducer,
    
 })
 

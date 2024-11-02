@@ -1,72 +1,203 @@
-const axios = require("axios")
+const axios = require("axios");
+const { uploadImageToCloud } = require("../utils/imageUploader");
+const User = require("../models/User");
+const Collection = require("../models/Collection")
 
 exports.generateImage = async (req, res) => {
   try {
-    const imageURL = process.env.IMAGE_URL; // Make sure IMAGE_URL is correctly set in your environment variables
-    const { prompt } = req.params; // Extract the prompt from the request body
+    const { prompt } = req.params; 
+    const URL = process.env.IMAGE_URL;
+    const {server} = req.body;
+    const userId = req.user.id;
 
-    console.log("Received prompt",prompt)
+    await User.findByIdAndUpdate(
+      userId,
+      {
+        $push:{
+          searches:prompt,
+        }
+        
+        
+      },
+      {new:true},
+    )
 
-    console.log(`${imageURL}/${prompt}`);
+    console.log(userId);
 
-    // Fetch the image as an arraybuffer (binary data)
-    const imageResponse = await axios.get(`${imageURL}/${prompt}`, {
-      responseType: 'arraybuffer', // Important: to handle image binary data
-    });
+    const H_F_API = process.env.BLACK_FOREST_API; 
+    const H_F_TOKEN = process.env.H_F_TOKEN; 
 
-    // Convert the image buffer to base64
-    const imageBuffer = Buffer.from(imageResponse.data, 'binary').toString('base64');
+    console.log("Received prompt:", prompt);
 
-    // Get the MIME type (content-type header from the response)
-    const mimeType = imageResponse.headers['content-type'];
+    let response;
+    console.log("server",server)
 
-    // Send the base64 image in the response
+    if(server === "SERVER1"){
+      console.log("in 1")
+       response = await axios.get(`${URL}/${prompt}`, {
+        responseType: 'arraybuffer', 
+      });
+
+    }
+    else if(server === "SERVER2"){
+      console.log("in 2")
+       response = await axios.post(
+        H_F_API,
+        { inputs: prompt }, 
+        {
+          headers: {
+            Authorization: `Bearer ${H_F_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          responseType: "arraybuffer", 
+        }
+      );
+    }
+
+   
+    const imageBuffer = Buffer.from(response.data, "binary");
+
+    const imageURL = await uploadImageToCloud(`data:image/png;base64,${imageBuffer.toString('base64')}`, process.env.FOLDER_NAME);
+
+   
+
     res.status(200).json({
-      success: "true",
-      message: "Image fetched successfully",
-      image: `data:${mimeType};base64,${imageBuffer}`, // Base64-encoded image
-    });
+
+      success:true,
+      image : imageURL.secure_url,
+
+    })
 
   } catch (error) {
     console.error("Error fetching image:", error);
-
-    res.status(400).json({
+    res.status(500).json({
       success: "false",
       message: "Image failed to fetch",
     });
   }
 };
 
-exports.getModels = async (req,res)=>{
+exports.addImageToCollection = async (req,res) =>{
 
-    try {
+  try {
+    
+      const {collectionID,title,Image_URL} = req.body;
 
-      // console.log("Entered in the get model server controller")
-      
-      const modelsURL = process.env.MODEL_URL;
+      const existingCollection = await Collection.findById({_id:collectionID});
 
-      const response = await axios.get(modelsURL);
+      console.log(existingCollection);
 
-      console.log("response : ",response.data);
-      const Models_List = response.data;
+      if(!existingCollection){
+        return res.status(401).json({
+          success:false,
+          message:"Collection not found",
+        })
+      }
+
+      await Collection.findByIdAndUpdate(
+        collectionID,  // You can pass the ID directly without wrapping in an object
+        {
+          $push: {
+            images: {
+              title,       // If title is a variable, you can also just write `title`
+              Image_URL, // Same for Image_URL
+            },
+          },
+        },
+        { new: true }
+      );
 
       res.status(200).json({
-        success:"true",
-        message:"ALL MODELS FETCHED",
-        Models_List,
+        success:true,
+        message:"Image added to the collection"
       })
+   
 
 
 
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      success:false,
+      message:"Image cant be added to the collection"
+    })
+ 
+  }
 
-    } catch (error) {
-      console.log("error in getting models",error);
+}
 
-      res.status(400).json({
-        success:"FALSE",
-        message:"ALL MODELS FAILED TO FETCH"
+exports.removeImageFromCollection = async (req,res) =>{
+  try {
+
+    const {collectionID,ImageID} = req.body;
+
+    const existingCollection = await Collection.findById({_id:collectionID});
+
+    if(!existingCollection){
+      return res.status(401).json({
+        success:false,
+        message:"Collection not found",
       })
     }
 
 
+    await Collection.findByIdAndUpdate(
+      collectionID,
+      {
+        $pull:{
+          images:{_id:ImageID}
+        }
+      },
+      {new:true},
+
+    )
+
+    
+    res.status(200).json({
+      success:true,
+      message:"Image removed successfully",
+     
+    })
+
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      success:false,
+      message:"failed to remove the image"
+    })
+  }
 }
+
+exports.getImagesFromACollection = async (req,res)=>{
+
+  try {
+
+    const collectionID = req.params.id;
+
+    console.log(collectionID);
+    
+    const collectionData = await Collection.findById({_id:collectionID});
+
+    console.log(collectionData);
+
+    
+
+    res.status(200).json({
+      success:true,
+      message:"fetched the collection images",
+      data : collectionData.images,
+    })
+
+
+
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({
+      success:false,
+      message:"fetching the images of a collection failed"
+    })
+  }
+
+
+}
+

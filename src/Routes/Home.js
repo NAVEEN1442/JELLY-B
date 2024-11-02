@@ -1,7 +1,7 @@
 import React from 'react'
 
 import Navbar from '../components/Navbar'
-import Main from '../components/Main'
+import GenerateImage from '../components/GenerateImage'
 
 
 function Home() {
@@ -10,7 +10,7 @@ function Home() {
 
         <Navbar/>
 
-        <Main/>
+        <GenerateImage/>
       
 
    
