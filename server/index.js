@@ -27,7 +27,7 @@ app.use(
 
 const allowedOrigins = [
   'http://localhost:3000', // your local development
-  'https://jelly-b-ai-image-generation.vercel.app' // add the Vercel domain here
+  'https://jelly-b.vercel.app' // add the Vercel domain here
 ];
 
 app.use(cors({
